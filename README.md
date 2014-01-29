@@ -12,13 +12,15 @@ var registry = require('etcd-registry');
 // Pass the nodes in your cluster in a connection string
 var reg = registry('127.0.0.1:4001,127.0.0.1:4002,127.0.0.1:4003');
 
-// Join the registry and do a look
-reg.join('my-service-name', {port:8080}, function(err) {
-	reg.lookup('my-service-name', function(err, service) {
-		console.log('Found the following service:');
-		console.log(service);
-	});
+// Join the registry
+reg.join('my-service-name', {port:8080});
+
+// Wait a bit and do a lookup
+reg.lookup('my-service-name', function(err, service) {
+	console.log('Found the following service:');
+	console.log(service);
 });
+
 ```
 
 Running the above example will produce the following output
