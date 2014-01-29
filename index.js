@@ -28,16 +28,18 @@ var registry = function(url) {
 
 	var req = function(path, opts, cb) {
 		var tries = urls.length;
-		var next = roundround(urls);
+		var offset = (Math.random() * urls.length) | 0;
+		var next = roundround(urls.slice(offset).concat(urls.slice(0, offset)));
 
 		var loop = function() {
-			request(next()+path, opts, function onresponse(err, response) {
+			request(opts.location || (next()+path), opts, function onresponse(err, response) {
 				if (err) {
+					if (opts.location) delete opts.location;
 					if (--tries <= 0) return cb(err);
 					return setTimeout(loop, 1000);
 				}
 
-				if (response.statusCode === 307) return request(response.headers.location, opts, onresponse);
+				if (response.statusCode === 307) return request(opts.location = response.headers.location, opts, onresponse);
 				if (response.statusCode === 404) return cb();
 				if (response.statusCode > 299) return cb(new Error('bad status code ('+response.statusCode+')'));
 
@@ -58,17 +60,18 @@ var registry = function(url) {
 		});
 	};
 
-	that.join = function(name, port, service, cb) {
-		if (typeof service === 'function') return that.join(name, port, null, service);
+	refresh();
+
+	that.join = function(name, service, cb) {
+		if (typeof service === 'function') return that.join(name, null, service);
 		if (!service) service = {};
 
 		service.name = name;
-		service.port = port;
 		service.hostname = service.hostname || address();
-		service.host = service.hostname+':'+service.port;
+		service.host = service.port ? service.hostname+':'+service.port : service.hostname;
 		service.url = service.url || (service.protocol || 'http')+'://'+service.host;
 
-		var path = '/v2/keys/'+encode(name)+'/'+encode(service.url);
+		var path = '/v2/keys/services/'+encode(name)+'/'+encode(service.url);
 		var body = qs.stringify({
 			value:JSON.stringify(service),
 			ttl:10
@@ -93,12 +96,14 @@ var registry = function(url) {
 
 		var keepAlive = function() {
 			ping(function(err) {
-				service.timeout = setTimeout(keepAlive, err ? 15000 : 5000).unref();
+				service.timeout = setTimeout(keepAlive, err ? 15000 : 5000);
+				service.timeout.unref();
 			});
 		};
 
 		ping(function(err) {
-			service.timeout = setTimeout(keepAlive, 5000).unref();
+			service.timeout = setTimeout(keepAlive, 5000);
+			service.timeout.unref();
 			if (cb) cb(err);
 		});
 	};
@@ -115,17 +120,14 @@ var registry = function(url) {
 
 		var loop = function() {
 			if (!list.length) return cb();
-			var next = list.shift();
-			req(next.key, {method:'DELETE'}, function() {
-				loop();
-			});
+			req(list.shift().key, {method:'DELETE'}, loop);
 		};
 
 		loop();
 	};
 
 	that.list = function(name, cb) {
-		req('/v2/keys/'+encode(name), {json:true, qs:{recursive:true}}, function(err, body) {
+		req('/v2/keys/services/'+encode(name), {json:true, qs:{recursive:true}}, function(err, body) {
 			if (err) return cb(err);
 			if (!body || !body.node || !body.node.nodes) return cb(null, []);
 
@@ -143,7 +145,7 @@ var registry = function(url) {
 	};
 
 	that.lookup = function(name, cb) {
-		req('/v2/keys/'+encode(name), {json:true, qs:{recursive:true}}, function(err, body) {
+		req('/v2/keys/services/'+encode(name), {json:true, qs:{recursive:true}}, function(err, body) {
 			if (err) return cb(err);
 			if (!body || !body.node || !body.node.nodes) return cb();
 
@@ -162,8 +164,6 @@ var registry = function(url) {
 			cb(null, node);
 		});
 	};
-
-	refresh();
 
 	return that;
 };
