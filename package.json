@@ -1,7 +1,8 @@
 {
   "name": "etcd-registry",
   "version": "0.0.0",
-  "description": "Use etcd as a service registry",
+  "description": "Service registry for Node.js on top of etcd",
+  "repository": "git://github.com/mafintosh/etcd-registry.git",
   "dependencies": {
     "request": "~2.33.0",
     "network-address": "0.0.4",
