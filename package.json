@@ -1,0 +1,10 @@
+{
+  "name": "etcd-registry",
+  "version": "0.0.0",
+  "description": "Use etcd as a service registry",
+  "dependencies": {
+    "request": "~2.33.0",
+    "network-address": "0.0.4",
+    "roundround": "~0.1.0"
+  }
+}
