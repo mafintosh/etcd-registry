@@ -4,7 +4,7 @@
   "description": "Service registry for Node.js on top of etcd",
   "repository": "git://github.com/mafintosh/etcd-registry.git",
   "scripts": {
-    "test": "tape test.js"
+    "test": "tap test.js"
   },
   "dependencies": {
     "request": "~2.33.0",
@@ -12,6 +12,6 @@
     "roundround": "~0.1.0"
   },
   "devDependencies": {
-    "tape": "~2.4.0"
+    "tap": "~0.4.8"
   }
 }

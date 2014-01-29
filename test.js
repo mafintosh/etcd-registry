@@ -1,9 +1,9 @@
-var tape = require('tape');
+var tap = require('tap');
 var registry = require('./');
 
 var reg = registry('127.0.0.1:4001');
 
-tape('adding a service', function(test) {
+tap.test('adding a service', function(test) {
 	test.plan(4);
 	reg.join('test', {port:1000, hostname:'127.0.0.1'}, function(err) {
 		test.ok(!err, 'no error on join');
@@ -26,7 +26,7 @@ tape('adding a service', function(test) {
 	});
 });
 
-tape('listing services', function(test) {
+tap.test('listing services', function(test) {
 	test.plan(4);
 	reg.join('test', {port:1000}, function(err) {
 		test.ok(!err, 'no error on join');
@@ -45,7 +45,7 @@ tape('listing services', function(test) {
 	});
 });
 
-tape('removing services', function(test) {
+tap.test('removing services', function(test) {
 	test.plan(4);
 	reg.join('test', {port:1000}, function(err) {
 		test.ok(!err, 'no error on join');
