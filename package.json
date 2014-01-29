@@ -3,9 +3,15 @@
   "version": "0.1.0",
   "description": "Service registry for Node.js on top of etcd",
   "repository": "git://github.com/mafintosh/etcd-registry.git",
+  "scripts": {
+    "test": "tape test.js"
+  },
   "dependencies": {
     "request": "~2.33.0",
     "network-address": "0.0.4",
     "roundround": "~0.1.0"
+  },
+  "devDependencies": {
+    "tape": "~2.4.0"
   }
 }
