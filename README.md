@@ -10,13 +10,13 @@ Service registry for Node.js on top of [etcd](https://github.com/coreos/etcd)
 var registry = require('etcd-registry');
 
 // Pass the nodes in your cluster in a connection string
-var reg = registry('127.0.0.1:4001,127.0.0.1:4002,127.0.0.1:4003');
+var services = registry('127.0.0.1:4001,127.0.0.1:4002,127.0.0.1:4003');
 
 // Join the registry
-reg.join('my-service-name', {port:8080});
+services.join('my-service-name', {port:8080});
 
 // Wait a bit and do a lookup
-reg.lookup('my-service-name', function(err, service) {
+services.lookup('my-service-name', function(err, service) {
 	console.log('Found the following service:');
 	console.log(service);
 });
@@ -38,11 +38,11 @@ Found the following service:
 
 ## Full api
 
-* `reg = registry(connection-string)` Create a new registry client
-* `reg.join(name, service, [cb])` Join the registry with a new service
-* `reg.leave([name], [cb])` Leave the registry. Omit the name to remove local services
-* `reg.lookup(name, [cb])` Lookup a single service
-* `reg.list(name, [cb])` List all services as an array
+* `services = registry(connection-string)` Create a new registry client
+* `services.join(name, service, [cb])` Join the registry with a new service
+* `services.leave([name], [cb])` Leave the registry. Omit the name to remove local services
+* `services.lookup(name, [cb])` Lookup a single service
+* `services.list(name, [cb])` List all services as an array
 
 ## Services
 
