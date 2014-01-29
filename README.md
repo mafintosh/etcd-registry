@@ -1,6 +1,6 @@
 # etcd-registry
 
-A service registry for Node.js on top of [etcd](https://github.com/coreos/etcd)
+Service registry for Node.js on top of [etcd](https://github.com/coreos/etcd)
 
 	npm install etcd-registry
 
