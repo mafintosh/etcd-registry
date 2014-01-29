@@ -23,7 +23,7 @@ reg.lookup('my-service-name', function(err, service) {
 
 ```
 
-Running the above example will produce the following output
+Running the above [example](https://github.com/mafintosh/etcd-registry/blob/master/example.js) will produce the following output
 
 ```
 Found the following service:
