@@ -41,8 +41,8 @@ Found the following service:
 * `services = registry(connection-string)` Create a new registry client
 * `services.join(name, service, [cb])` Join the registry with a new service
 * `services.leave([name], [cb])` Leave the registry. Omit the name to remove local services
-* `services.lookup(name, [cb])` Lookup a single service
-* `services.list(name, [cb])` List all services as an array
+* `services.lookup(name, cb)` Lookup a single service
+* `services.list([name], cb)` List all services as an array. Omit the name to list all services
 
 ## Services
 
