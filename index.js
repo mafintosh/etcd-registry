@@ -11,7 +11,7 @@ request = request.defaults({
 var noop = function() {};
 
 var encode = function(str) {
-	return encodeURIComponent(str.replace(/[\/:]+/g, '-'));
+	return encodeURI(str.replace(/[+:; ]+/g, '-'));
 };
 
 var registry = function(url) {
@@ -63,6 +63,7 @@ var registry = function(url) {
 	refresh();
 
 	that.join = function(name, service, cb) {
+		if (typeof service === 'number') service = {port:service};
 		if (typeof service === 'function') return that.join(name, null, service);
 		if (!service) service = {};
 
@@ -71,7 +72,7 @@ var registry = function(url) {
 		service.host = service.port ? service.hostname+':'+service.port : service.hostname;
 		service.url = service.url || (service.protocol || 'http')+'://'+service.host;
 
-		var path = '/v2/keys/services/'+encode(name)+'/'+encode(service.url);
+		var path = '/v2/keys/services/'+encode(name)+'/'+encode(service.url.replace('://', '-'));
 		var body = qs.stringify({
 			value:JSON.stringify(service),
 			ttl:10
@@ -126,15 +127,25 @@ var registry = function(url) {
 		loop();
 	};
 
+	var flatten = function(nodes) {
+		var result = [];
+		nodes.forEach(function visit(node) {
+			if (node.nodes) return node.nodes.forEach(visit);
+			if (node.value) result.push(node.value);
+		});
+		return result;
+	};
+
 	that.list = function(name, cb) {
-		req('/v2/keys/services/'+encode(name), {json:true, qs:{recursive:true}}, function(err, body) {
+		if (typeof name === 'function') return that.list(null, name);
+		req('/v2/keys/services/'+encode(name || ''), {json:true, qs:{recursive:true}}, function(err, body) {
 			if (err) return cb(err);
 			if (!body || !body.node || !body.node.nodes) return cb(null, []);
 
 			var vals = [];
-			body.node.nodes.forEach(function(node) {
+			flatten(body.node.nodes).forEach(function(node) {
 				try {
-					vals.push(JSON.parse(node.value));
+					vals.push(JSON.parse(node));
 				} catch (err) {
 					// do nothing ...
 				}
@@ -145,18 +156,19 @@ var registry = function(url) {
 	};
 
 	that.lookup = function(name, cb) {
-		req('/v2/keys/services/'+encode(name), {json:true, qs:{recursive:true}}, function(err, body) {
+		if (typeof name === 'function') return that.lookup(null, name);
+		req('/v2/keys/services/'+encode(name || ''), {json:true, qs:{recursive:true}}, function(err, body) {
 			if (err) return cb(err);
 			if (!body || !body.node || !body.node.nodes) return cb();
 
-			var nodes = body.node.nodes;
+			var nodes = flatten(body.node.nodes);
 			if (!nodes.length) return cb();
 
 			var node = nodes[(Math.random() * nodes.length) | 0];
 			if (!node) return cb();
 
 			try {
-				node = JSON.parse(node.value);
+				node = JSON.parse(node);
 			} catch (err) {
 				return cb(err);
 			}
