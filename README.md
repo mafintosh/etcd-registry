@@ -69,9 +69,8 @@ Use `/` in your service name to build service hierachies.
 For example if you add a service under `public/my-service` you will be able to list all `public` services by doing
 
 ``` js
-// list all services called public or starting with public/
 services.list('public', function(err, list) {
-
+	// list is an array of all services called public or starting with public/
 });
 ```
 
