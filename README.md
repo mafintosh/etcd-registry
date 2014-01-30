@@ -61,7 +61,7 @@ An example of a service document could be:
 
 These documents are saved in [etcd](https://github.com/coreos/etcd) with a TTL of 10s.
 Every 5s `etcd-registry` will send a heartbeat for each service to the registry which resets the expiration counter.
-If possible you should call `reg.leave()` before exiting your service process. Otherwise your service will be garbage collected after (at most) 10s
+If possible you should call `services.leave()` before exiting your service process. Otherwise your service will be garbage collected after (at most) 10s
 
 ## Service hierarchies
 
