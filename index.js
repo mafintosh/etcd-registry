@@ -11,6 +11,7 @@ request = request.defaults({
 var noop = function() {};
 
 var registry = function(url) {
+	if (!url) url = '127.0.0.1:4001';
 	if (Array.isArray(url)) url = url.join(',');
 
 	var protocol = url.indexOf('://') > -1 ? url.split('://')[0]+'://' : 'http://';
