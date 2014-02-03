@@ -44,6 +44,16 @@ Found the following service:
 * `services.lookup(name, cb)` Lookup a single service
 * `services.list([name], cb)` List all services as an array. Omit the name to list all services
 
+## Connection string
+
+The connection has the following format
+
+	protocol://host1,host2,host3,.../namespace
+
+The protocol can be `https` or `http` and defaults to `http`.
+If you set a `namespace` all keys will be prefixed with the value.
+If you do not specify a port in the hosts `4001` will be used (default etcd port).
+
 ## Services
 
 Services are just JSON documents. `etcd-registry` will add a default `hostname` and a couple of other properties.
