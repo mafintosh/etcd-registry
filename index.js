@@ -11,7 +11,7 @@ request = request.defaults({
 var noop = function() {};
 
 var registry = function(url) {
-	if (!url) url = '127.0.0.1:4001';
+	if (!url) url = '127.0.0.1';
 
 	var parsed = url.match(/^([^:]+:\/\/)?([^\/]+)(?:\/([^\?]+))?(?:\?(.+))?$/);
 	if (!parsed) throw new Error('Invalid connection string');
@@ -19,6 +19,7 @@ var registry = function(url) {
 	var protocol = parsed[1] || 'http://';
 	var ns = (parsed[3] || '').replace(/^\//, '').replace(/([^\/])$/, '$1/');
 	var urls = parsed[2].split(/,\s*/).map(function(url) {
+		if (url.indexOf(':') === -1) url += ':4001';
 		return protocol+url;
 	});
 
