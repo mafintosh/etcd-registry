@@ -12,10 +12,13 @@ var noop = function() {};
 
 var registry = function(url) {
 	if (!url) url = '127.0.0.1:4001';
-	if (Array.isArray(url)) url = url.join(',');
 
-	var protocol = url.indexOf('://') > -1 ? url.split('://')[0]+'://' : 'http://';
-	var urls = url.replace(protocol, '').split(/,\s*/).map(function(url) {
+	var parsed = url.match(/^([^:]+:\/\/)?([^\/]+)(?:\/([^\?]+))?(?:\?(.+))?$/);
+	if (!parsed) throw new Error('Invalid connection string');
+
+	var protocol = parsed[1] || 'http://';
+	var ns = (parsed[3] || '').replace(/^\//, '').replace(/([^\/])$/, '$1/');
+	var urls = parsed[2].split(/,\s*/).map(function(url) {
 		return protocol+url;
 	});
 
@@ -69,7 +72,7 @@ var registry = function(url) {
 		service.host = service.port ? service.hostname+':'+service.port : service.hostname;
 		service.url = service.url || (service.protocol || 'http')+'://'+service.host;
 
-		var path = '/v2/keys/services/'+name+'/'+service.url.replace(/[:\/]+/g, '-');
+		var path = '/v2/keys/services/'+ns+name+'/'+service.url.replace(/[:\/]+/g, '-');
 		var body = qs.stringify({
 			value:JSON.stringify(service),
 			ttl:10
@@ -135,7 +138,7 @@ var registry = function(url) {
 
 	that.list = function(name, cb) {
 		if (typeof name === 'function') return that.list(null, name);
-		req('/v2/keys/services/'+(name || ''), {json:true, qs:{recursive:true}}, function(err, body) {
+		req('/v2/keys/services/'+ns+(name || ''), {json:true, qs:{recursive:true}}, function(err, body) {
 			if (err) return cb(err);
 			if (!body || !body.node || !body.node.nodes) return cb(null, []);
 
@@ -154,7 +157,7 @@ var registry = function(url) {
 
 	that.lookup = function(name, cb) {
 		if (typeof name === 'function') return that.lookup(null, name);
-		req('/v2/keys/services/'+(name || ''), {json:true, qs:{recursive:true}}, function(err, body) {
+		req('/v2/keys/services/'+ns+(name || ''), {json:true, qs:{recursive:true}}, function(err, body) {
 			if (err) return cb(err);
 			if (!body || !body.node || !body.node.nodes) return cb();
 
