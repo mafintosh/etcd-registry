@@ -30,7 +30,7 @@ var registry = function(url) {
 	var req = function(path, opts, cb) {
 		var tries = urls.length;
 		var offset = (Math.random() * urls.length) | 0;
-		var next = roundround(urls.slice(offset).concat(urls.slice(0, offset)));
+		var next = roundround(urls, offset);
 
 		var loop = function() {
 			request(opts.location || (next()+path), opts, function onresponse(err, response) {
