@@ -106,7 +106,7 @@ var registry = function(url) {
 		ping(function(err) {
 			service.timeout = setTimeout(keepAlive, 5000);
 			service.timeout.unref();
-			if (cb) cb(err);
+			if (cb) cb(err, service);
 		});
 	};
 
