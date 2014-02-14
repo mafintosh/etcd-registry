@@ -2,6 +2,7 @@
 
 var registry = require('./');
 var net = require('net');
+var path = require('path');
 
 if (process.argv.length < 5) {
 	console.error('Usage: etcd-registry [connection-string] [service-name] [index-file.js]');
@@ -16,7 +17,6 @@ var Server = net.Server;
 
 var listen = Server.prototype.listen;
 var req = process.argv[4];
-if (!/^(\.|\/)/.test(req)) req = './'+req;
 
 server.listen(0, function() {
 	var port = server.address().port;
@@ -42,6 +42,6 @@ server.listen(0, function() {
 
 	server.close(function() {
 		process.env.PORT = port;
-		require(req);
+		require(path.join(process.cwd(), req));
 	});
 });
