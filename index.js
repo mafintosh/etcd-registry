@@ -79,6 +79,11 @@ var registry = function(url) {
 			ttl:10
 		});
 
+		var clone = {};
+		Object.keys(service).forEach(function(key) {
+			clone[key] = service[key];
+		});
+
 		service.key = path;
 		services.push(service);
 
@@ -106,7 +111,7 @@ var registry = function(url) {
 		ping(function(err) {
 			service.timeout = setTimeout(keepAlive, 5000);
 			service.timeout.unref();
-			if (cb) cb(err, service);
+			if (cb) cb(err, clone);
 		});
 	};
 
