@@ -6,9 +6,6 @@
   "scripts": {
     "test": "tap test.js"
   },
-  "bin": {
-    "etcd-registry-join": "bin.js"
-  },
   "dependencies": {
     "request": "~2.33.0",
     "network-address": "0.0.4",

@@ -44,15 +44,6 @@ Found the following service:
 * `services.lookup(name, cb)` Lookup a single service
 * `services.list([name], cb)` List all services as an array. Omit the name to list all services
 
-## Command line service join
-
-You can join a node service by using the command line tool `etcd-registry-join`
-
-	etcd-registry-join 127.0.0.1:4001 my-service-name my-entry-point.js
-
-This will run `my-entry-point.js` and set `PORT={service-port}`. When you bind to the port
-the app will be added to the registry.
-
 ## Connection string
 
 The connection has the following format
