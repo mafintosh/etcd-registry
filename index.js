@@ -127,7 +127,9 @@ var registry = function(url) {
 
 		var loop = function() {
 			if (!list.length) return cb();
-			req(list.shift().key, {method:'DELETE'}, loop);
+			var service = list.shift();
+			clearTimeout(service.timeout);
+			req(service.key, {method:'DELETE'}, loop);
 		};
 
 		loop();
