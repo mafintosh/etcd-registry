@@ -10,8 +10,26 @@ request = request.defaults({
 
 var noop = function() {};
 
+var parseSetting = function(val) {
+	if (val === 'false') return false;
+	if (val === 'true') return true;
+	if (/^\d+$/) return parseInt(val, 10);
+	return val;
+};
+
 var registry = function(url) {
 	if (!url) url = '127.0.0.1';
+
+	var settings = {};
+
+	if (url.indexOf('?') > -1) {
+		settings = qs.parse(url.split('?')[1]);
+		url = url.split('?')[0];
+
+		Object.keys(settings).forEach(function(key) {
+			settings[key] = parseSetting(settings[key]);
+		});
+	}
 
 	var parsed = url.match(/^([^:]+:\/\/)?([^\/]+)(?:\/([^\?]+))?(?:\?(.+))?$/);
 	if (!parsed) throw new Error('Invalid connection string');
@@ -61,7 +79,7 @@ var registry = function(url) {
 		});
 	};
 
-	refresh();
+	if (settings.refresh !== false) refresh();
 
 	that.join = function(name, service, cb) {
 		if (typeof service === 'number') service = {port:service};
