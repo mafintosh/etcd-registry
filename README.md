@@ -48,7 +48,7 @@ Found the following service:
 
 The connection has the following format
 
-	protocol://host1,host2,host3,.../namespace
+	protocol://host1,host2,host3,.../namespace?options
 
 The protocol can be `https` or `http` and defaults to `http`.
 If you set a `namespace` all keys will be prefixed with the value.
