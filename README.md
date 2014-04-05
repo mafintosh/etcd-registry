@@ -4,6 +4,11 @@ Service registry for Node.js on top of [etcd](https://github.com/coreos/etcd)
 
 	npm install etcd-registry
 
+To install the command line tool
+
+	npm install -g etcd-registry
+	etcd-registry help
+
 ## Usage
 
 ``` js

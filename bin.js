@@ -43,7 +43,11 @@ var _ = argv._;
 
 var help = function() {
 	optimist.showHelp();
-	console.log('Commands: \n  '+Object.keys(cmds).join('\n  ')+'\n');
+	console.error('Commands:')
+	console.error('  join [name] [index.js]  # Listen on env.PORT to join the registry in index.js');
+	console.error('  list                    # List all added services');
+	console.error('  lookup [name]           # Lookup a specific service');
+	console.error('');
 	process.exit(1);
 };
 
