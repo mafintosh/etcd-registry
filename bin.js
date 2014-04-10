@@ -87,7 +87,7 @@ cmds.join = function(name, main) {
 						});
 					};
 
-					if (!arv.wait) return leave();
+					if (!argv.wait) return leave();
 					setTimeout(leave, argv.wait);
 				});
 
