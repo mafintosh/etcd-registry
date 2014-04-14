@@ -83,12 +83,12 @@ cmds.join = function(name, main) {
 					var leave = function() {
 						services.leave(function() {
 							if (!argv.slack) return pexit();
-							setTimeout(argv.slack, pexit);
+							setTimeout(pexit, parseInt(argv.slack, 10));
 						});
 					};
 
 					if (!argv.wait) return leave();
-					setTimeout(leave, argv.wait);
+					setTimeout(leave, parseInt(argv.wait, 10));
 				});
 
 				process.on('SIGINT', function() {
