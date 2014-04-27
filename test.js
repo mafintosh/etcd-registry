@@ -1,10 +1,9 @@
 var test = require('tap').test;
 var registry = require('./');
 
-var reg = registry('127.0.0.1:4001');
-
 test('adding a service', function(test) {
 	test.plan(4);
+	var reg = registry('127.0.0.1:4001');
 	reg.join('test', {port:1000, hostname:'127.0.0.1'}, function(err) {
 		test.ok(!err, 'no error on join');
 		setTimeout(function() {
@@ -28,6 +27,7 @@ test('adding a service', function(test) {
 
 test('listing services', function(test) {
 	test.plan(4);
+	var reg = registry('127.0.0.1:4001');
 	reg.join('test', {port:1000}, function(err) {
 		test.ok(!err, 'no error on join');
 		reg.join('test', {port:1001}, function(err) {
@@ -47,6 +47,7 @@ test('listing services', function(test) {
 
 test('removing services', function(test) {
 	test.plan(4);
+	var reg = registry('127.0.0.1:4001');
 	reg.join('test', {port:1000}, function(err) {
 		test.ok(!err, 'no error on join');
 		reg.leave('test', function(err) {
