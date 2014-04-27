@@ -1,209 +1,225 @@
-var request = require('request');
-var events = require('events');
+var etcdjs = require('etcdjs');
+var LRU = require('lru-cache');
+var crypto = require('crypto');
 var address = require('network-address');
-var qs = require('querystring');
-var roundround = require('roundround');
-
-request = request.defaults({
-	timeout: 10000
-});
+var querystring = require('querystring');
 
 var noop = function() {};
 
+var sha1 = function(val) {
+	return crypto.createHash('sha1').update(val).digest('hex');
+};
+
 var parseSetting = function(val) {
+	if (!val) return undefined;
 	if (val === 'false') return false;
 	if (val === 'true') return true;
-	if (/^\d+$/) return parseInt(val, 10);
+	if (/^\d+$/.test(val)) return parseInt(val, 10);
 	return val;
 };
 
-var registry = function(url) {
-	if (!url) url = '127.0.0.1';
-
-	var settings = {};
-
-	if (url.indexOf('?') > -1) {
-		settings = qs.parse(url.split('?')[1]);
-		url = url.split('?')[0];
-
-		Object.keys(settings).forEach(function(key) {
-			settings[key] = parseSetting(settings[key]);
-		});
-	}
+var parseConnectionString = function(url) {
+	if (!url || typeof url === 'object') return url || {};
 
 	var parsed = url.match(/^([^:]+:\/\/)?([^\/]+)(?:\/([^\?]+))?(?:\?(.+))?$/);
 	if (!parsed) throw new Error('Invalid connection string');
 
+	var opts = {};
 	var protocol = parsed[1] || 'http://';
-	var ns = (parsed[3] || '').replace(/^\//, '').replace(/([^\/])$/, '$1/');
-	var urls = parsed[2].split(/,\s*/).map(function(url) {
-		if (url.indexOf(':') === -1) url += ':4001';
+	var qs = querystring.parse(url.split('?')[1]);
+
+	opts.namespace = parsed[3] || '';
+	opts.refresh = !!parseSetting(qs.refresh);
+	opts.cache = parseSetting(qs.cache);
+
+	opts.hosts = parsed[2].split(/,\s*/).map(function(url) {
 		return protocol+url;
 	});
 
-	var that = new events.EventEmitter();
-	var services = [];
-	var prev = urls.join(', ');
+	return opts;
+};
 
-	var req = function(path, opts, cb) {
-		var tries = urls.length;
-		var offset = (Math.random() * urls.length) | 0;
-		var next = roundround(urls, offset);
+module.exports = function(opts) {
+	opts = parseConnectionString(opts);
 
-		var loop = function() {
-			request(opts.location || (next()+path), opts, function onresponse(err, response) {
-				if (err) {
-					if (opts.location) delete opts.location;
-					if (--tries <= 0) return cb(err);
-					return setTimeout(loop, 1000);
-				}
+	var store = etcdjs(opts);
+	var cache = LRU(opts.cache || 100);
 
-				if (response.statusCode === 307) return request(opts.location = response.headers.location, opts, onresponse);
-				if (response.statusCode === 404) return cb();
-				if (response.statusCode > 299) return cb(new Error('bad status code ('+response.statusCode+')'));
-
-				cb(null, response.body);
-			});
-		};
-
-		loop();
+	var destroyed = false;
+	var onreset = function() {
+		cache.reset();
 	};
 
-	var refresh = function() {
-		req('/v2/machines', {}, function(err, body) {
-			if (err || !body || prev === body) return setTimeout(refresh, 60000).unref();
-			prev = body;
-			urls = body.split(/,\s*/);
-			that.emit('machines', urls);
-			setTimeout(refresh, 60000).unref();
+	var ns = (opts.namespace || '').replace(/^\//, '').replace(/([^\/])$/, '$1/');
+	var prefix = function(key) {
+		return 'registry/'+ns+key;
+	};
+
+	var cacheTimeout;
+	var cacheBuster = function() {
+		store.get(prefix('updated'), function onupdated(err, first) {
+			if (destroyed) return;
+			if (err) return cacheTimeout = setTimeout(cacheBuster, 5000);
+			if (!first) return store.set(prefix('updated'), new Date().toISOString(), onupdated);
+
+			onreset();
+
+			store.wait(prefix('updated'), {waitIndex:first.node.modifiedIndex+1}, function onwait(err, result, next) {
+				if (destroyed) return;
+				if (err) return cacheTimeout = setTimeout(cacheBuster, 5000);
+
+				onreset();
+				next(onwait);
+			});
 		});
 	};
 
-	if (settings.refresh !== false) refresh();
+	var that = {};
+	var services = [];
+
+	var normalize = function(key) {
+		return key.replace(/[^a-zA-Z0-9\-]/g, '-');
+	};
 
 	that.join = function(name, service, cb) {
-		if (typeof service === 'number') service = {port:service};
 		if (typeof service === 'function') return that.join(name, null, service);
+		if (typeof service === 'number') service = {port:service};
 		if (!service) service = {};
+		if (!cb) cb = noop;
 
 		service.name = name;
 		service.hostname = service.hostname || address();
-		service.host = service.port ? service.hostname+':'+service.port : service.hostname;
+		service.host = service.host || (service.port ? service.hostname + ':' + service.port : service.hostname);
 		service.url = service.url || (service.protocol || 'http')+'://'+service.host;
 
-		var path = '/v2/keys/services/'+ns+name+'/'+service.url.replace(/[:\/]+/g, '-');
-		var body = qs.stringify({
-			value:JSON.stringify(service),
-			ttl:10
-		});
+		var key = prefix('services/'+normalize(name)+'/'+sha1(name+'-'+service.url));
+		var value = JSON.stringify(service);
+		var entry = {name:name, key:key, destroyed:false, timeout:null};
 
-		var clone = {};
-		Object.keys(service).forEach(function(key) {
-			clone[key] = service[key];
-		});
-
-		service.key = path;
-		services.push(service);
-
-		var opts = {
-			method: 'PUT',
-			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8'
-			},
-			body: body
+		var update = function(cb) {
+			store.set(key, value, {ttl:10}, cb);
 		};
 
-		var ping = function(cb) {
-			req(path, opts, function(err, body) {
+		var loop = function() {
+			update(function(err) {
+				if (entry.destroyed) return;
+				entry.timeout = setTimeout(loop, err ? 15000 : 5000);
+			});
+		};
+
+		var onerror = function(err) {
+			leave([entry], function() {
 				cb(err);
 			});
 		};
 
-		var keepAlive = function() {
-			ping(function(err) {
-				service.timeout = setTimeout(keepAlive, err ? 15000 : 5000);
-				service.timeout.unref();
+		services.push(entry);
+		update(function(err) {
+			if (err) return onerror(err);
+			if (destroyed) return onerror(new Error('registry destroyed'));
+
+			store.set(prefix('updated'), new Date().toISOString(), function(err) {
+				if (err) return onerror(err);
+				if (destroyed) return onerror(new Error('registry destroyed'));
+
+				entry.timeout = setTimeout(loop, 5000);
+				cb(null, service);
 			});
-		};
-
-		ping(function(err) {
-			service.timeout = setTimeout(keepAlive, 5000);
-			service.timeout.unref();
-			if (cb) cb(err, clone);
-		});
-	};
-
-	that.leave = function(name, cb) {
-		if (typeof name === 'function') return that.leave(null, name);
-		if (!cb) cb = noop;
-
-		var list = services.filter(function(service) {
-			return !name || service.name === name;
-		});
-
-		if (!list.length) return cb();
-
-		var loop = function() {
-			if (!list.length) return cb();
-			var service = list.shift();
-			clearTimeout(service.timeout);
-			req(service.key, {method:'DELETE'}, loop);
-		};
-
-		loop();
-	};
-
-	var flatten = function(nodes) {
-		var result = [];
-		nodes.forEach(function visit(node) {
-			if (node.nodes) return node.nodes.forEach(visit);
-			if (node.value) result.push(node.value);
-		});
-		return result;
-	};
-
-	that.list = function(name, cb) {
-		if (typeof name === 'function') return that.list(null, name);
-		req('/v2/keys/services/'+ns+(name || ''), {json:true, qs:{recursive:true}}, function(err, body) {
-			if (err) return cb(err);
-			if (!body || !body.node || !body.node.nodes) return cb(null, []);
-
-			var vals = [];
-			flatten(body.node.nodes).forEach(function(node) {
-				try {
-					vals.push(JSON.parse(node));
-				} catch (err) {
-					// do nothing ...
-				}
-			});
-
-			cb(null, vals);
 		});
 	};
 
 	that.lookup = function(name, cb) {
 		if (typeof name === 'function') return that.lookup(null, name);
-		req('/v2/keys/services/'+ns+(name || ''), {json:true, qs:{recursive:true}}, function(err, body) {
+
+		that.list(name, function(err, list) {
 			if (err) return cb(err);
-			if (!body || !body.node || !body.node.nodes) return cb();
+			if (!list.length) return cb(null, null);
+			cb(null, list[(Math.random() * list.length) | 0]);
+		});
+	};
 
-			var nodes = flatten(body.node.nodes);
-			if (!nodes.length) return cb();
+	var flatten = function(result, node) {
+		if (node.value) result.push(node);
+		if (!node.nodes) return result;
 
-			var node = nodes[(Math.random() * nodes.length) | 0];
-			if (!node) return cb();
+		node.nodes.forEach(function(node) {
+			flatten(result, node);
+		});
 
-			try {
-				node = JSON.parse(node);
-			} catch (err) {
-				return cb(err);
-			}
+		return result;
+	};
 
-			cb(null, node);
+	var nextTick = function(cb, err, val) {
+		process.nextTick(function() {
+			cb(err, val);
+		});
+	};
+
+	that.list = function(name, cb) {
+		if (typeof name === 'function') return that.list(null, name);
+		if (name) name = normalize(name);
+
+		var cached = cache.get(name || '*');
+		if (cached) return nextTick(cb, null, cached);
+
+		store.get(prefix('services/'+(name || '')), {recursive:true}, function(err, result) {
+			if (err) return cb(err);
+			if (!result) return cb(null, []);
+
+			var list = flatten([], result.node)
+				.map(function(node) {
+					try {
+						return JSON.parse(node.value);
+					} catch (err) {
+						return null;
+					}
+				})
+				.filter(function(val) {
+					return val;
+				});
+
+			cache.set(name || '*', list);
+
+			cb(null, list);
+		});
+	};
+
+	var leave = function(list, cb) {
+		var loop = function() {
+			var next = list.shift();
+
+			if (!next) return store.set(prefix('updated'), new Date().toISOString(), cb);
+
+			clearTimeout(next.timeout);
+			next.destroyed = true;
+
+			var i = services.indexOf(next);
+			if (i > -1) services.splice(next, 1);
+
+			store.del(next.key, loop);
+		};
+
+		loop();
+	};
+
+	that.leave = function(name, cb) {
+		if (typeof name === 'function') return that.destroy(cb); // backwards compat
+
+		var list = services.filter(function(entry) {
+			return entry.name === name;
+		});
+
+		leave(list, cb || noop);
+	};
+
+	that.destroy = function(cb) {
+		clearTimeout(cacheTimeout);
+		destroyed = true;
+		leave(services, function(err) {
+			store.destroy();
+			if (cb) return cb();
 		});
 	};
 
 	return that;
 };
-
-module.exports = registry;
