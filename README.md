@@ -78,21 +78,14 @@ These documents are saved in [etcd](https://github.com/coreos/etcd) with a TTL o
 Every 5s `etcd-registry` will send a heartbeat for each service to the registry which resets the expiration counter.
 If possible you should call `services.leave()` before exiting your service process. Otherwise your service will be garbage collected after (at most) 10s
 
-## Service hierarchies
-
-Use `/` in your service name to build service hierachies.
-For example if you add a service under `public/my-service` you will be able to list all `public` services by doing
-
-``` js
-services.list('public', function(err, list) {
-	// list is an array of all services called public or starting with public/
-});
-```
-
 ## Fault tolerance
 
 If a operation fails `etcd-registry` will try another node in the cluster until it has tried everyone.
-Every 60s `etcd-registry` will ping your cluster to see if new machines has joined and update the connection string
+Every once in a while `etcd-registry` will ping your cluster to see if new machines has joined and update the connection string
+
+## Caching
+
+`etcd-registry` will cache 100 service lookups in an LRU cache that is flushed if the remote etcd store has been updated making subsequent lookups for the same service name extremely cheap.
 
 ## License
 
