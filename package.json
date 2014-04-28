@@ -1,6 +1,6 @@
 {
   "name": "etcd-registry",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Service registry for Node.js on top of etcd",
   "repository": "git://github.com/mafintosh/etcd-registry.git",
   "scripts": {
