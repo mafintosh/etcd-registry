@@ -159,8 +159,8 @@ module.exports = function(opts) {
 		if (typeof name === 'function') return that.list(null, name);
 		if (name) name = normalize(name);
 
-		var cached = cache.get(name || '*');
-		if (cached) return nextTick(cb, null, cached);
+		// var cached = cache.get(name || '*');
+		// if (cached) return nextTick(cb, null, cached);
 
 		store.get(prefix('services/'+(name || '')), {recursive:true}, function(err, result) {
 			if (err) return cb(err);
@@ -178,7 +178,7 @@ module.exports = function(opts) {
 					return val;
 				});
 
-			cache.set(name || '*', list);
+			// cache.set(name || '*', list);
 
 			cb(null, list);
 		});
