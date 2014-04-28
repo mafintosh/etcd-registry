@@ -52,7 +52,7 @@ module.exports = function(opts) {
 
 	var ns = (opts.namespace || '').replace(/^\//, '').replace(/([^\/])$/, '$1/');
 	var prefix = function(key) {
-		return 'registry/'+ns+key;
+		return 'services/'+ns+key;
 	};
 
 	var that = {};
