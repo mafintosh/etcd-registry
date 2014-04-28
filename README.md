@@ -83,10 +83,6 @@ If possible you should call `services.leave()` before exiting your service proce
 If a operation fails `etcd-registry` will try another node in the cluster until it has tried everyone.
 Every once in a while `etcd-registry` will ping your cluster to see if new machines has joined and update the connection string
 
-## Caching
-
-`etcd-registry` will cache 100 service lookups in an LRU cache that is flushed if the remote etcd store has been updated making subsequent lookups for the same service name extremely cheap.
-
 ## License
 
 MIT
