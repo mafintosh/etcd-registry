@@ -55,25 +55,6 @@ module.exports = function(opts) {
 		return 'registry/'+ns+key;
 	};
 
-	var cacheTimeout;
-	var cacheBuster = function() {
-		store.get(prefix('updated'), function onupdated(err, first) {
-			if (destroyed) return;
-			if (err) return cacheTimeout = setTimeout(cacheBuster, 5000);
-			if (!first) return store.set(prefix('updated'), new Date().toISOString(), onupdated);
-
-			onreset();
-
-			store.wait(prefix('updated'), {waitIndex:first.node.modifiedIndex+1}, function onwait(err, result, next) {
-				if (destroyed) return;
-				if (err) return cacheTimeout = setTimeout(cacheBuster, 5000);
-
-				onreset();
-				next(onwait);
-			});
-		});
-	};
-
 	var that = {};
 	var services = [];
 
@@ -92,11 +73,12 @@ module.exports = function(opts) {
 		service.host = service.host || (service.port ? service.hostname + ':' + service.port : service.hostname);
 		service.url = service.url || (service.protocol || 'http')+'://'+service.host;
 
-		var key = prefix('services/'+normalize(name)+'/'+sha1(name+'-'+service.url));
+		var key = prefix(normalize(name)+'/'+sha1(name+'-'+service.url));
 		var value = JSON.stringify(service);
 		var entry = {name:name, key:key, destroyed:false, timeout:null};
 
 		var update = function(cb) {
+			console.log(key);
 			store.set(key, value, {ttl:10}, cb);
 		};
 
@@ -118,13 +100,8 @@ module.exports = function(opts) {
 			if (err) return onerror(err);
 			if (destroyed) return onerror(new Error('registry destroyed'));
 
-			store.set(prefix('updated'), new Date().toISOString(), function(err) {
-				if (err) return onerror(err);
-				if (destroyed) return onerror(new Error('registry destroyed'));
-
-				entry.timeout = setTimeout(loop, 5000);
-				cb(null, service);
-			});
+			entry.timeout = setTimeout(loop, 5000);
+			cb(null, service);
 		});
 	};
 
@@ -159,10 +136,7 @@ module.exports = function(opts) {
 		if (typeof name === 'function') return that.list(null, name);
 		if (name) name = normalize(name);
 
-		// var cached = cache.get(name || '*');
-		// if (cached) return nextTick(cb, null, cached);
-
-		store.get(prefix('services/'+(name || '')), {recursive:true}, function(err, result) {
+		store.get(prefix(name || ''), {recursive:true}, function(err, result) {
 			if (err) return cb(err);
 			if (!result) return cb(null, []);
 
@@ -178,8 +152,6 @@ module.exports = function(opts) {
 					return val;
 				});
 
-			// cache.set(name || '*', list);
-
 			cb(null, list);
 		});
 	};
@@ -188,7 +160,7 @@ module.exports = function(opts) {
 		var loop = function() {
 			var next = list.shift();
 
-			if (!next) return store.set(prefix('updated'), new Date().toISOString(), cb);
+			if (!next) return cb();
 
 			clearTimeout(next.timeout);
 			next.destroyed = true;
@@ -213,7 +185,6 @@ module.exports = function(opts) {
 	};
 
 	that.destroy = function(cb) {
-		clearTimeout(cacheTimeout);
 		destroyed = true;
 		leave(services, function(err) {
 			store.destroy();
