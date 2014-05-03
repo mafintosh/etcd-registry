@@ -78,7 +78,6 @@ module.exports = function(opts) {
 		var entry = {name:name, key:key, destroyed:false, timeout:null};
 
 		var update = function(cb) {
-			console.log(key);
 			store.set(key, value, {ttl:10}, cb);
 		};
 
