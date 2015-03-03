@@ -20,6 +20,7 @@ var parseSetting = function(val) {
 
 var parseConnectionString = function(url) {
 	if (!url || typeof url === 'object') return url || {};
+	if (/^https:\/\/discovery.etcd.io\//.test(url)) return {token: url};
 
 	var parsed = url.match(/^([^:]+:\/\/)?([^\/]+)(?:\/([^\?]+))?(?:\?(.+))?$/);
 	if (!parsed) throw new Error('Invalid connection string');

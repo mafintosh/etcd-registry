@@ -10,13 +10,13 @@
     "etcd-registry": "./bin.js"
   },
   "dependencies": {
-    "network-address": "0.0.4",
-    "freeport": "^1.0.2",
-    "pretty-tree": "^0.1.2",
     "chalk": "^1.0.0",
-    "optimist": "^0.6.1",
+    "etcdjs": "^2.2.0",
+    "freeport": "^1.0.2",
     "lru-cache": "^2.5.0",
-    "etcdjs": "^2.0.2"
+    "network-address": "0.0.4",
+    "optimist": "^0.6.1",
+    "pretty-tree": "^0.1.2"
   },
   "devDependencies": {
     "tap": "~0.4.8"
