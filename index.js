@@ -175,7 +175,7 @@ module.exports = function(opts) {
 	};
 
 	that.leave = function(name, cb) {
-		if (typeof name === 'function') return that.destroy(cb); // backwards compat
+		if (typeof name === 'function') return that.destroy(name); // backwards compat
 
 		var list = services.filter(function(entry) {
 			return entry.name === name;
